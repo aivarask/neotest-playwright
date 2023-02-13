@@ -42,6 +42,7 @@ use({
                --    return "path/to/playwright.config.ts"
                -- end,
 
+               -- Defaults to the directory containing the playwright config.
                -- get_cwd = function(file_path)
                --    return "path/to/dir"
                -- end,

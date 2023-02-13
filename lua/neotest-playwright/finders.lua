@@ -157,4 +157,12 @@ ____exports.getPlaywrightConfig = function(filePath)
     logger.info("Unable to locate playwright config file.")
     return nil
 end
+____exports.getCwd = function(filePath)
+    local config = ____exports.getPlaywrightConfig(filePath)
+    if config then
+        local dir = vim.fn.fnamemodify(config, ":h")
+        return dir
+    end
+    return nil
+end
 return ____exports

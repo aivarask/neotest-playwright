@@ -83,9 +83,16 @@ ____exports.buildSpec = function(args)
     )
     local resultsPath = async.fn.tempname() .. ".json"
     local extraArgs = getExtraArgs(args.extra_args, options.extra_args)
+    local ____buildCommand_result_1 = buildCommand(commandOptions, extraArgs)
+    local ____temp_0
+    if type(options.get_cwd) == "function" then
+        ____temp_0 = options.get_cwd(pos.path)
+    else
+        ____temp_0 = nil
+    end
     return {
-        command = buildCommand(commandOptions, extraArgs),
-        cwd = type(options.get_cwd) == "function" and options.get_cwd(pos.path) or nil,
+        command = ____buildCommand_result_1,
+        cwd = ____temp_0,
         context = {results_path = resultsPath, file = pos.path},
         env = __TS__ObjectAssign({PLAYWRIGHT_JSON_OUTPUT_NAME = resultsPath}, options.env)
     }

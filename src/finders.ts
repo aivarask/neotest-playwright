@@ -35,3 +35,15 @@ export const getPlaywrightConfig = (filePath: string) => {
 
 	return null;
 };
+
+export const getCwd = (filePath: string) => {
+	const config = getPlaywrightConfig(filePath);
+
+	if (config) {
+		// return the directory of the playwright config
+		const dir = vim.fn.fnamemodify(config, ':h');
+		return dir;
+	}
+
+	return null;
+};

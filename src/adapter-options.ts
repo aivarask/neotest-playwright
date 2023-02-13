@@ -1,4 +1,4 @@
-import { getPlaywrightBinary, getPlaywrightConfig } from './finders';
+import { getCwd, getPlaywrightBinary, getPlaywrightConfig } from './finders';
 import type { Adapter } from './types/adapter';
 
 // Options is in it's own file to avoid circular dependencies.
@@ -8,7 +8,7 @@ export const options: Adapter['options'] = {
 	persist_project_selection: false,
 	get_playwright_command: getPlaywrightBinary,
 	get_playwright_config: getPlaywrightConfig,
-	get_cwd: null,
+	get_cwd: getCwd,
 	env: {},
 	extra_args: [],
 };

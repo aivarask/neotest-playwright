@@ -1,6 +1,7 @@
 --[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
 local ____finders = require('neotest-playwright.finders')
+local getCwd = ____finders.getCwd
 local getPlaywrightBinary = ____finders.getPlaywrightBinary
 local getPlaywrightConfig = ____finders.getPlaywrightConfig
 ____exports.options = {
@@ -9,7 +10,7 @@ ____exports.options = {
     persist_project_selection = false,
     get_playwright_command = getPlaywrightBinary,
     get_playwright_config = getPlaywrightConfig,
-    get_cwd = nil,
+    get_cwd = getCwd,
     env = {},
     extra_args = {}
 }
