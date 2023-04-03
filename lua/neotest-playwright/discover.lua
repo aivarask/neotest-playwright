@@ -26,7 +26,7 @@ ____exports.isTestFile = function(file_path)
     if not file_path then
         return false
     end
-    local endings = {".spec.ts", ".test.ts", ".spec.js", ".test.js"}
+    local endings = {".spec.ts", ".spec.js"}
     local result = __TS__ArraySome(
         endings,
         function(____, ending) return __TS__StringEndsWith(file_path, ending) end
