@@ -8,9 +8,10 @@ Written in typescript and transpiled to Lua using [tstl](https://github.com/Type
 
 ## Features
 
-- [ ] Discover, run, and parse the output of playwright tests
-- [x] Project selection + persistence
-- [x] On-the-fly presets
+- 🎭 Discover, run, and parse the output of playwright tests
+- ⌨️ Quick launch test attachments ( 🕵️ trace, 📼 video)
+- 💅 Project selection + persistence
+- ⚙️ On-the-fly presets
 
 ---
 
@@ -30,39 +31,50 @@ use({
       -- ...,
       adapters = {
          require("neotest-playwright").adapter({
-            -- ...,
             options = {
-               persist_project_selection = false,
-
-               -- get_playwright_command = function(file_path)
-               --    return "path/to/playwright-binary"
-               -- end,
-
-               -- get_playwright_config = function(file_path)
-               --    return "path/to/playwright.config.ts"
-               -- end,
-
-               -- get_cwd = function(file_path)
-               --    return "path/to/dir"
-               -- end,
-
-               -- env = {
-               --    HELLO = "world",
-               -- },
-
-               -- Extra args to always pass to playwright.
-               -- These are merged with any extra_arg passed
-               -- to neotest's run command.
-               -- extra_args = {
-               --    "--retries=0",
-               --    "--max-failures=5",
-               -- },
-
+               persist_project_selection = true,
+               enable_dynamic_test_discovery = true,
             }
          }),
       },
    })
    end,
+})
+```
+
+# Configuration
+
+```lua
+require("neotest-playwright").adapter({
+   options = {
+		-- defaults values shown
+
+      persist_project_selection = false,
+
+      enable_dynamic_test_discovery = false,
+
+      preset = "none", -- "none" | "headed" | "debug"
+
+      -- get_playwright_binary = function()
+      --    return vim.loop.cwd() + "/node_modules/.bin/playwright"
+      -- end,
+
+      -- get_playwright_config = function()
+      --    return vim.loop.cwd() + "/playwright.config.ts"
+      -- end,
+
+      -- get_cwd = function()
+      --    return vim.loop.cwd()
+      -- end,
+
+      -- env = { },
+
+      -- Extra args to always pass to playwright.
+      -- These are merged with any extra_arg passed
+      -- to neotest's run command.
+      -- extra_args = { },
+
+   }
 })
 ```
 
@@ -104,6 +116,60 @@ Does not apply any flags. Your tests will run as defined in your `playwright.con
 
 ---
 
-# Credits
+## Dynamic Test Discovery
+
+`neotest-playwright` can make use of the `playwright` cli to unlock extra features. Most importantly, the `playwright` cli provides information about which tests belongs to which project. `neotest-playwright` will parse this information to display, run, and report the results of tests on a per-project basis.
+
+To enable this, set `enable_dynamic_test_discovery` to true.
+
+### Caveats:
+
+This feature works by calling `playwright test --list --reporter=json`. While this is a relatively fast operation, it does add some overhead. Therefore, `neotest-playwright` only calls this feature once (when the adapter is first initialized). From then on, `neotest-playwright` continues to rely on treesitter to track your tests and enhance them with the data previously resolved by the `playwright` cli. There are times, however, where we want to refresh this data. To remedy this: `neotest-playwright` exposes a command `:NeotestPlaywrightRefresh`. This comes in handy in the following scenarios:
+
+- Adding a new test
+- Renaming a test
+- Changing the project(s) configuration in your `playwright.config.ts` file
+
+## Consumers
+
+### Attachment
+
+Displays the attachments for the test under the cursor. Upon selection, the attachment is launched.
+
+https://user-images.githubusercontent.com/33713262/231016415-d110f491-290e-46e3-a118-b3d4802723ca.mp4
+
+#### Configuration
+
+> Requires `enable_dynamic_test_discovery = true`.
+
+1. Include the consumer in your `neotest` setup:
+
+```lua
+require("neotest").setup({
+  consumers = {
+    -- add to your consumers list
+    playwright = require("neotest-playwright.consumers").consumers,
+  },
+})
+```
+
+2. Add keybinding:
+
+```lua
+{
+  "thenbe/neotest-playwright",
+  keys = {
+    {
+      "<leader>ta",
+      function()
+        require("neotest").playwright.attachment()
+      end,
+      desc = "Launch test attachment",
+    },
+  },
+}
+```
+
+## Credits
 
 - [neotest-jest](https://github.com/haydenmeade/neotest-jest)

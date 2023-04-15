@@ -76,7 +76,7 @@ do
             if isClassicLua or caller and caller.func ~= error then
                 return description
             else
-                return (tostring(description) .. "\n") .. self.stack
+                return (description .. "\n") .. tostring(self.stack)
             end
         end
     end
@@ -87,7 +87,7 @@ do
             {__call = function(____, _self, message) return __TS__New(Type, message) end}
         )
     end
-    local ____initErrorClass_2 = initErrorClass
+    local ____initErrorClass_1 = initErrorClass
     local ____class_0 = __TS__Class()
     ____class_0.name = ""
     function ____class_0.prototype.____constructor(self, message)
@@ -98,31 +98,25 @@ do
         self.name = "Error"
         self.stack = getErrorStack(nil, self.constructor.new)
         local metatable = getmetatable(self)
-        if not metatable.__errorToStringPatched then
+        if metatable and not metatable.__errorToStringPatched then
             metatable.__errorToStringPatched = true
             metatable.__tostring = wrapErrorToString(nil, metatable.__tostring)
         end
     end
     function ____class_0.prototype.__tostring(self)
-        local ____temp_1
-        if self.message ~= "" then
-            ____temp_1 = (self.name .. ": ") .. self.message
-        else
-            ____temp_1 = self.name
-        end
-        return ____temp_1
+        return self.message ~= "" and (self.name .. ": ") .. self.message or self.name
     end
-    Error = ____initErrorClass_2(nil, ____class_0, "Error")
+    Error = ____initErrorClass_1(nil, ____class_0, "Error")
     local function createErrorClass(self, name)
-        local ____initErrorClass_4 = initErrorClass
-        local ____class_3 = __TS__Class()
-        ____class_3.name = ____class_3.name
-        __TS__ClassExtends(____class_3, Error)
-        function ____class_3.prototype.____constructor(self, ...)
-            ____class_3.____super.prototype.____constructor(self, ...)
+        local ____initErrorClass_3 = initErrorClass
+        local ____class_2 = __TS__Class()
+        ____class_2.name = ____class_2.name
+        __TS__ClassExtends(____class_2, Error)
+        function ____class_2.prototype.____constructor(self, ...)
+            ____class_2.____super.prototype.____constructor(self, ...)
             self.name = name
         end
-        return ____initErrorClass_4(nil, ____class_3, name)
+        return ____initErrorClass_3(nil, ____class_2, name)
     end
     RangeError = createErrorClass(nil, "RangeError")
     ReferenceError = createErrorClass(nil, "ReferenceError")
@@ -150,6 +144,33 @@ local function __TS__ArrayMap(self, callbackfn, thisArg)
     return result
 end
 
+local function __TS__ArrayIsArray(value)
+    return type(value) == "table" and (value[1] ~= nil or next(value) == nil)
+end
+
+local function __TS__ArrayConcat(self, ...)
+    local items = {...}
+    local result = {}
+    local len = 0
+    for i = 1, #self do
+        len = len + 1
+        result[len] = self[i]
+    end
+    for i = 1, #items do
+        local item = items[i]
+        if __TS__ArrayIsArray(item) then
+            for j = 1, #item do
+                len = len + 1
+                result[len] = item[j]
+            end
+        else
+            len = len + 1
+            result[len] = item
+        end
+    end
+    return result
+end
+
 local function __TS__ArrayPushArray(self, items)
     local len = #self
     for i = 1, #items do
@@ -163,11 +184,14 @@ local ____exports = {}
 local getSpecStatus, constructSpecKey, collectSpecErrors, toNeotestError
 local ____neotest_2Dplaywright_2Eutil = require("neotest-playwright.util")
 local cleanAnsi = ____neotest_2Dplaywright_2Eutil.cleanAnsi
-local logger = require("neotest.logging")
+local ____adapter_2Doptions = require('neotest-playwright.adapter-options')
+local options = ____adapter_2Doptions.options
+local ____helpers = require('neotest-playwright.helpers')
+local emitError = ____helpers.emitError
 ____exports.decodeOutput = function(data)
     local ok, parsed = pcall(vim.json.decode, data, {luanil = {object = true}})
     if not ok then
-        logger.error("Failed to parse test output json")
+        emitError("Failed to parse test output json")
         error(
             __TS__New(Error, "Failed to parse test output json"),
             0
@@ -175,40 +199,46 @@ ____exports.decodeOutput = function(data)
     end
     return parsed
 end
-____exports.parseOutput = function(report, output)
+____exports.parseOutput = function(report)
     if #report.errors > 1 then
-        local msg = "Global errors found in report"
-        logger.warn(msg, report.errors)
-        vim.defer_fn(
-            function() return vim.cmd(("echohl WarningMsg | echo \"" .. msg) .. "\" | echohl None") end,
-            0
-        )
+        emitError("Global errors found in report")
     end
     local root = report.suites[1]
     if not root then
-        local msg = "No test suites found in report"
-        logger.error(msg)
-        vim.defer_fn(
-            function() return vim.cmd(("echohl WarningMsg | echo \"" .. msg) .. "\" | echohl None") end,
-            0
-        )
+        emitError("No test suites found in report")
         return {}
     end
-    local results = ____exports.parseSuite(root, report, output)
+    local results = ____exports.parseSuite(root, report)
     return results
 end
-____exports.parseSuite = function(suite, report, output)
+____exports.parseSuite = function(suite, report)
     local results = {}
-    for ____, spec in ipairs(suite.specs) do
-        local key = constructSpecKey(report, spec, suite)
-        local specResults = ____exports.parseSpec(spec)
-        results[key] = specResults
-    end
-    for ____, child in ipairs(suite.suites or ({})) do
-        local childResults = ____exports.parseSuite(child, report, output)
-        results = __TS__ObjectAssign({}, results, childResults)
+    local specs = ____exports.flattenSpecs({suite})
+    for ____, spec in ipairs(specs) do
+        local key
+        if options.enable_dynamic_test_discovery then
+            key = spec.id
+        else
+            key = constructSpecKey(report, spec)
+        end
+        results[key] = ____exports.parseSpec(spec)
     end
     return results
+end
+____exports.flattenSpecs = function(suites)
+    local specs = {}
+    for ____, suite in ipairs(suites) do
+        local suiteSpecs = __TS__ArrayMap(
+            suite.specs,
+            function(____, spec) return __TS__ObjectAssign({}, spec, {suiteTitle = suite.title}) end
+        )
+        specs = __TS__ArrayConcat(
+            specs,
+            suiteSpecs,
+            ____exports.flattenSpecs(suite.suites or ({}))
+        )
+    end
+    return specs
 end
 ____exports.parseSpec = function(spec)
     local status = getSpecStatus(spec)
@@ -216,33 +246,29 @@ ____exports.parseSpec = function(spec)
         collectSpecErrors(spec),
         function(____, s) return toNeotestError(s) end
     )
-    local data = {status = status, short = (spec.title .. ": ") .. status, errors = errors}
+    local ____opt_2 = spec.tests[1]
+    local ____opt_0 = ____opt_2 and ____opt_2.results[1]
+    local attachments = ____opt_0 and ____opt_0.attachments or ({})
+    local data = {status = status, short = (spec.title .. ": ") .. status, errors = errors, attachments = attachments}
     return data
 end
 getSpecStatus = function(spec)
     if not spec.ok then
         return "failed"
     else
-        local ____opt_0 = spec.tests[1]
-        if (____opt_0 and ____opt_0.status) == "skipped" then
+        local ____opt_4 = spec.tests[1]
+        if (____opt_4 and ____opt_4.status) == "skipped" then
             return "skipped"
         else
             return "passed"
         end
     end
 end
-constructSpecKey = function(report, spec, suite)
+constructSpecKey = function(report, spec)
     local dir = report.config.rootDir
     local file = spec.file
     local name = spec.title
-    local suiteName = suite.title
-    local isPartOfDescribe = suiteName ~= file
-    local key
-    if isPartOfDescribe then
-        key = (((((dir .. "/") .. file) .. "::") .. suiteName) .. "::") .. name
-    else
-        key = (((dir .. "/") .. file) .. "::") .. name
-    end
+    local key = (((dir .. "/") .. file) .. "::") .. name
     return key
 end
 --- Collect all errors from a spec by traversing spec -> tests[] -> results[].
@@ -258,8 +284,8 @@ collectSpecErrors = function(spec)
 end
 --- Convert Playwright error to neotest error
 toNeotestError = function(____error)
-    local ____opt_2 = ____error.location
-    local line = ____opt_2 and ____opt_2.line
+    local ____opt_6 = ____error.location
+    local line = ____opt_6 and ____opt_6.line
     return {
         message = cleanAnsi(____error.message),
         line = line and line - 1 or 0
