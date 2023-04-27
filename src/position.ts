@@ -7,8 +7,6 @@ import { logger } from './logging';
 
 type BasePosition = Omit<RangedPosition, 'id'>;
 
-// WARN: remove debug code
-
 /** Given a test position, return one or more positions based on what can be
  * dynamically discovered using the playwright cli. */
 export const buildTestPosition = (basePosition: BasePosition): Position[] => {
@@ -39,13 +37,11 @@ export const buildTestPosition = (basePosition: BasePosition): Position[] => {
 	if (specs.length === 0) {
 		logger('debug', 'No match found');
 
-		// TODO: return position with available data
-		// throw new Error('No match found');
+		// return position with available data
 		return [basePosition];
 	}
 
 	// filter out positions belonging to ignored projects
-	// TODO: check this is up-to-date
 	const projects = options.projects;
 
 	const positions: Position[] = [];
@@ -53,7 +49,6 @@ export const buildTestPosition = (basePosition: BasePosition): Position[] => {
 	/** The parent of the range-less positions */
 	const main = {
 		...basePosition,
-		// TODO: convert type to namespace? If so, ensure there's at lease one match
 		// TODO: use treesitter id?
 	} satisfies Position;
 
@@ -85,8 +80,6 @@ export const buildTestPosition = (basePosition: BasePosition): Position[] => {
 
 	return positions;
 };
-
-// TODO: add to readme. testDir should be defined in playwright config.
 
 /** Convert a playwright spec to a neotest position. */
 const specToPosition = (

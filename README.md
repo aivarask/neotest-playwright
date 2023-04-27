@@ -4,14 +4,18 @@ A [playwright](https://playwright.dev/) adapter for [neotest](https://github.com
 
 Written in typescript and transpiled to Lua using [tstl](https://github.com/TypeScriptToLua/TypeScriptToLua).
 
-> ⚠️ This adapter is in an experimental state.
-
 ## Features
 
 - 🎭 Discover, run, and parse the output of playwright tests
 - ⌨️ Quick launch test attachments ( 🕵️ trace, 📼 video)
 - 💅 Project selection + persistence
 - ⚙️ On-the-fly presets
+
+---
+
+## Demo
+
+https://user-images.githubusercontent.com/33713262/233094989-4073e15f-e72d-4356-9c26-021ca95aa7fd.mp4
 
 ---
 
@@ -23,12 +27,12 @@ Using packer:
 use({
    "nvim-neotest/neotest",
    requires = {
-      -- ...,
+      -- ...
       "thenbe/neotest-playwright",
    },
    config = function()
    require("neotest").setup({
-      -- ...,
+      -- ...
       adapters = {
          require("neotest-playwright").adapter({
             options = {
@@ -47,7 +51,7 @@ use({
 ```lua
 require("neotest-playwright").adapter({
    options = {
-		-- defaults values shown
+      -- default values shown
 
       persist_project_selection = false,
 
@@ -74,6 +78,11 @@ require("neotest-playwright").adapter({
       -- to neotest's run command.
       -- extra_args = { },
 
+			-- Filter directories when searching for test files,
+			-- useful in large projects (see performance notes).
+			-- filter_dir = function(name, rel_path, root)
+			-- 		return name ~= "node_modules"
+			-- end,
    }
 })
 ```
@@ -147,7 +156,7 @@ https://user-images.githubusercontent.com/33713262/231016415-d110f491-290e-46e3-
 ```lua
 require("neotest").setup({
   consumers = {
-    -- add to your consumers list
+    -- add to your list of consumers
     playwright = require("neotest-playwright.consumers").consumers,
   },
 })
@@ -169,6 +178,36 @@ require("neotest").setup({
   },
 }
 ```
+
+## Performance
+
+Use `filter_dir` option to limit directories to be searched for tests.
+
+```lua
+---Filter directories when searching for test files
+---@async
+---@param name string Name of directory
+---@param rel_path string Path to directory, relative to root
+---@param root string Root directory of project
+---@return boolean
+filter_dir = function(name, rel_path, root)
+  local full_path = root .. "/" .. rel_path
+
+  if root:match("projects/my-large-monorepo") then
+    if full_path:match("^packages/site/test") then
+      return true
+    else
+      return false
+    end
+  else
+    return name ~= "node_modules"
+  end
+end
+```
+
+## Troubleshooting
+
+[`testDir`](https://playwright.dev/docs/api/class-testconfig#test-config-test-dir) should be defined in `playwright.config.ts`.
 
 ## Credits
 
